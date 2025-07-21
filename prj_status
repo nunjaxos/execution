@@ -1,0 +1,43 @@
+heck_syntax :
+    --> check_syntax.c      	: done
+    --> redirection_error.c 	: done
+    --> validate_syntax.c   	: forbiden use and line to loong 
+    --> helper.c            	: done
+    --> syntax_check_utils.c 	: done
+
+
+clean up :                  
+    --> ft+clean_up		: done
+
+
+expande :
+    --> expande_tokens.c	: global var && assimnet control 
+    --> expande_utils.c 	: global var & assigment control 
+    --> expande_env.c 		: globale varibale 
+
+includes : 
+    --> minishell.h 
+
+lexer :
+    --> lexer_init.c
+    --> lexer_utils.c
+    --> lexer_special_handler.c
+    --> lexer_word_handler.c
+
+parser : 
+    --> handle_heredoc.c
+    --> parser.c
+    --> handle_redirections.c
+    --> parser_utils.c
+
+-> debuging.c :
+-> main.c
+
+
+
+
+
+syntax error : 
+unclosed ().
+
+
