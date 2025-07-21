@@ -32,7 +32,6 @@ SRC = main.c \
       parser/parser_utils.c \
       parser/parser.c \
       clean_up/ft_clean.c \
-      execution/exec_env.c \
       execution/execute.c \
       expand/expand_token.c \
       expand/expand_env.c \
