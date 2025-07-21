@@ -448,99 +448,126 @@ int exec_builtin(t_cmd *cmd)
 
 // =========================== PIPE EXECUTION ============================ //
 
+// Refactored pipeline execution functions (replace in your executor file)
+
+static void setup_child_pipes(t_cmd *cmd, int prev_fd, int *pipefd)
+{
+    // Setup input redirection
+    if (cmd->in_file != STDIN_FILENO)
+        dup2(cmd->in_file, STDIN_FILENO);
+    else if (prev_fd != -1)
+        dup2(prev_fd, STDIN_FILENO);
+
+    // Setup output redirection  
+    if (cmd->out_file != STDOUT_FILENO)
+        dup2(cmd->out_file, STDOUT_FILENO);
+    else if (cmd->next)
+        dup2(pipefd[1], STDOUT_FILENO);
+}
+
+static void close_child_pipes(int prev_fd, int *pipefd, t_cmd *cmd)
+{
+    if (prev_fd != -1) 
+        close(prev_fd);
+    if (cmd->next)
+    {
+        close(pipefd[0]);
+        close(pipefd[1]);
+    }
+}
+
+static int exec_child_process(t_cmd *cmd, char **envp)
+{
+    char *path;
+
+    if (is_builtin(cmd->full_cmd[0]))
+        exit(exec_builtin(cmd));
+
+    path = get_cmd_path(cmd->full_cmd[0]);
+    if (!path)
+    {
+        fprintf(stderr, "%s: command not found\n", cmd->full_cmd[0]);
+        exit(127);
+    }
+    
+    execve(path, cmd->full_cmd, envp);
+    perror(path);
+    free(path);
+    exit(127);
+}
+
+static int create_child_process(t_cmd *cmd, int prev_fd, int *pipefd, char **envp)
+{
+    pid_t pid;
+
+    pid = fork();
+    if (pid == 0)
+    {
+        // Child process
+        setup_child_pipes(cmd, prev_fd, pipefd);
+        close_child_pipes(prev_fd, pipefd, cmd);
+        exec_child_process(cmd, envp);
+    }
+    else if (pid < 0)
+    {
+        perror("fork");
+        return (-1);
+    }
+    return (0);
+}
+
+static void cleanup_parent_pipes(int prev_fd, int *pipefd, t_cmd *cmd)
+{
+    if (prev_fd != -1)
+        close(prev_fd);
+    if (cmd->next)
+        close(pipefd[1]);
+}
+
+static int wait_for_children(void)
+{
+    while (wait(NULL) > 0)
+        ;
+    return (0);
+}
+
 int execute_pipeline(t_data *data)
 {
     t_cmd *cmd;
     int pipefd[2];
     int prev_fd = -1;
-    pid_t pid;
-    char *path;
     char **envp;
 
     if (!data || !data->head)
-        return (1);
-        
-    cmd = data->head;
+        return (1);  
     envp = env_to_array(g_envp);
     if (!envp)
         return (1);
-
+    cmd = data->head;
     while (cmd)
     {
-        // Check if command is valid
         if (!cmd->full_cmd || !cmd->full_cmd[0])
         {
             cmd = cmd->next;
             continue;
         }
-
         if (cmd->next && pipe(pipefd) < 0)
         {
             perror("pipe");
             free_str_array(envp);
             return (1);
         }
-
-        pid = fork();
-        if (pid == 0)
+        if (create_child_process(cmd, prev_fd, pipefd, envp) == -1)
         {
-            // Child process
-            if (cmd->in_file != STDIN_FILENO)
-                dup2(cmd->in_file, STDIN_FILENO);
-            else if (prev_fd != -1)
-                dup2(prev_fd, STDIN_FILENO);
-
-            if (cmd->out_file != STDOUT_FILENO)
-                dup2(cmd->out_file, STDOUT_FILENO);
-            else if (cmd->next)
-                dup2(pipefd[1], STDOUT_FILENO);
-
-            // Close unused file descriptors
-            if (prev_fd != -1) 
-                close(prev_fd);
-            if (cmd->next)
-            {
-                close(pipefd[0]);
-                close(pipefd[1]);
-            }
-
-            if (is_builtin(cmd->full_cmd[0]))
-                exit(exec_builtin(cmd));
-
-            path = get_cmd_path(cmd->full_cmd[0]);
-            if (!path)
-            {
-                fprintf(stderr, "%s: command not found\n", cmd->full_cmd[0]);
-                exit(127);
-            }
-            
-            execve(path, cmd->full_cmd, envp);
-            perror(path);
-            free(path);
-            exit(127);
-        }
-        else if (pid < 0)
-        {
-            perror("fork");
             free_str_array(envp);
             return (1);
         }
-        
-        // Parent process
-        if (prev_fd != -1)
-            close(prev_fd);
+        cleanup_parent_pipes(prev_fd, pipefd, cmd);
         if (cmd->next)
-        {
-            close(pipefd[1]);
             prev_fd = pipefd[0];
-        }
         cmd = cmd->next;
     }
-    
-    // Wait for all children
-    while (wait(NULL) > 0)
-        ;
-        
+    wait_for_children();
     free_str_array(envp);
     return (0);
 }
