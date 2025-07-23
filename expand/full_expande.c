@@ -1,23 +1,6 @@
 #include "minishell.h"
 
-extern t_env *g_envp;
 
-char *get_env_value(char *name)
-{
-    t_env *temp;
-
-    if (!name)
-        return (NULL);
-    
-    temp = g_envp;
-    while (temp)
-    {
-        if (temp->name && strcmp(temp->name, name) == 0)
-            return (temp->value);
-        temp = temp->next;
-    }
-    return (NULL);
-}
 
 int is_valid_var_char(char c)
 {
@@ -104,13 +87,13 @@ int handle_special_var(char *name, int exit_code, char **value)
     return (0); // indicates value points to existing memory
 }
 
-void cleanup_var_expansion(char *name, char *value, int is_special)
-{
-    if (name)
-        free(name);
-    if (value && is_special)
-        free(value);
-}
+// void cleanup_var_expansion(char *name, char *value, int is_special)
+// {
+//     if (name)
+//         free(name);
+//     if (value && is_special)
+//         free(value);
+// }
 
 int process_regular_char(char *content, int *i, t_expand_data *data)
 {

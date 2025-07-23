@@ -6,84 +6,60 @@
 /*   By: abnemili <abnemili@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/12 20:23:16 by abnemili          #+#    #+#             */
-/*   Updated: 2025/07/21 09:35:02 by abnemili         ###   ########.fr       */
+/*   Updated: 2025/07/22 13:38:07 by abnemili         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
-int	ft_strcmp(const char *s1, const char *s2)
-{
-	size_t	i;
-
-	i = 0;
-	while (s1[i] && s2[i] && s1[i] == s2[i])
-		i++;
-	return ((unsigned char)s1[i] - (unsigned char)s2[i]);
-}
-
 
 int process_input(char *input, int *last_exit_code)
 {
-    t_data data;
-    t_lexer *lexer;
+    t_data data = {0};
+    t_lexer *lexer = NULL;
 
-
-    init_data(&data, input); // init data
-    if (check_empty_line(&data))
-        return (1); // Empty line is not an error
-
-
-    lexer = init_lexer(input); // init lexer
+    if (!input || !*input)
+        return (1);
+    
+    lexer = init_lexer(input);
     if (!lexer)
+        return (0);
+    
+    data.elem = init_tokens(lexer);
+    if (!data.elem)
     {
-        printf("Error: lexer initialization failed\n");
+        free(lexer);
         return (0);
     }
-
-    // Tokenize and merge the tokens quote 
-    data.elem = init_tokens(lexer); // tokenising
+    
     merge_adjacent_word_tokens(&data.elem);
-
-    if (!parse_input(data.elem, input, lexer))
-    {
-        cleanup_resources(&data, lexer, NULL);
-        return (0);
-    }
-    expand_tokens(data.elem, *last_exit_code); // probably 
+    expand_tokens(data.elem, *last_exit_code);
     
     if (!parse_pipeline(&data))
     {
-        printf("Error: pipeline parsing failed\n");
-        printf("DETECTED HERE IN PASE_PIPELINE MIAN.C \n");
         cleanup_resources(&data, lexer, NULL);
         return (0);
     }
     
-    // Debug output (remove in production)
-    printf("\n--- DEBUG: Parsed Commands ---\n");
-    print_pipeline_debug(&data);
-
-    // TODO: Execute commands and update last_exit_code
-    // *last_exit_code = execute_pipeline(&data);
-    *last_exit_code = 0; // Mock exit status
-
-    // Cleanup
+    // Set the exit status pointer in data for signal handlers
+    data.exit_status = *last_exit_code;
+    
+    *last_exit_code = execute_pipeline(&data);
     cleanup_resources(&data, lexer, NULL);
     return (1);
 }
 
-
-
 int main(int argc, char **argv, char **envp)
 {
     char *input;
-    t_data data;
-
+    int last_exit_code = 0;
+    
     (void)argc;
     (void)argv;
+    
+    // Initialize environment and signal handling
     init_env_list(envp);
-    handle_signals();
-
+    handle_signals(&last_exit_code);
+    
     while (1)
     {
         input = readline("minishell$ ");
@@ -93,14 +69,13 @@ int main(int argc, char **argv, char **envp)
             break;
         }
         if (*input)
+        {
             add_history(input);
-
-        if (process_input(input, &data.error))
-            execute_pipeline(&data);
-
+            process_input(input, &last_exit_code);
+        }
         free(input);
-        cleanup_resources(&data, NULL, NULL);
     }
-    return (0);
+    
+    free_env_list(g_envp);
+    return (last_exit_code);
 }
-

@@ -1,14 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   minishell.h                                        :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: abnemili <abnemili@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/05/11 16:36:40 by abnemili          #+#    #+#             */
-/*   Updated: 2025/07/21 09:51:40 by abnemili         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
 
 #ifndef MINISHELL_H
 # define MINISHELL_H
@@ -29,11 +18,13 @@
 # include <sys/wait.h>
 # include <errno.h>
 # include "../libft/libft.h"
-# include "../libft/get_next_line.h"
+# include "get_next_line.h"
 
 /* ========================================================================== */
 /*                               ENUMS                                        */
 /* ========================================================================== */
+
+extern int					g_sigchild;
 
 enum e_type
 {
@@ -138,6 +129,7 @@ typedef struct s_data
 	int				out;
 	t_elem			*elem;
 	int				error;
+	int				exit_status;
 	int				file_error;
 	int				expanded;
 	char			*expnd;
@@ -343,8 +335,13 @@ void	init_env_list(char **envp);
 void	free_env_list(t_env *env);
 
 /* ===================== SIGNALS ===================== */
-void	handle_signals(void);
-
+void	sigint_wrapper(int signo);
+void	sigquit_wrapper(int signo);
+void	handle_signals(int *last_exit_code);
+void 	ignore_signals(void);
+void	default_signals(void);
+void	set_child_running(void);
+void	set_child_finished(void);
 /* ===================== PARSER / LEXER ===================== */
 int		parse_pipeline(t_data *data);
 void	skip_whitespace_ptr(t_elem **current);
@@ -359,7 +356,22 @@ int		handle_heredoc(t_data *data, t_elem **current, t_cmd *cmd);
 int		is_builtin(char *cmd);
 int		exec_builtin(t_cmd *cmd);
 int		execute_pipeline(t_data *data);
-
+		//EXEC_UTILS
+	//EXEC_PIPELINE_UTILS
+int		count_commands(t_cmd *cmd);
+void	handle_input_redirection(t_cmd *cmd, int prev_fd);
+void	handle_output_redirection(t_cmd *cmd, int *pipefd);
+void	execute_child_command(t_cmd *cmd, char **envp);
+int		handle_child_process(t_cmd *cmd, int *pipefd, int prev_fd, char **envp);
+char	**init_pipeline(t_data *data);
+int		execute_pipeline_commands(t_cmd *cmd, char **envp);
+int		wait_and_cleanup(char **envp);
+int		execute_one_pipeline_step(t_cmd *cmd, char **envp, int *prev_fd, int pipefd[2]);
+	//SINGLE_COMMAND_UTILS
+int		execute_single_command(t_cmd *cmd);
+int		execute_builtin_command(t_cmd *cmd);
+void	setup_and_exec_child(t_cmd *cmd, char **envp);
+int		fork_and_execute(t_cmd *cmd, char **envp);
 /* ===================== BUILTINS ===================== */
 int		builtin_cd(char **args);
 int		builtin_echo(char **args);
@@ -382,6 +394,6 @@ void 	free_str_array(char **arr);
 
 
 char 	*ft_strjoin3(const char *s1, const char *s2, const char *s3);
-char	*ft_strndup(const char *s, size_t n);
-int		ft_strcmp(const char *s1, const char *s2);
+
+
 #endif

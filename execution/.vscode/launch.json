@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": false,
-      "cwd": "/home/abhmidat/Desktop/shell/execution",
-      "program": "/home/abhmidat/Desktop/shell/execution/build/Debug/outDebug",
+      "cwd": "/home/abhmidat/Downloads/minishell/execution",
+      "program": "/home/abhmidat/Downloads/minishell/execution/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

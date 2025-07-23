@@ -3,7 +3,7 @@ NAME = minishell
 
 # Compiler and flags
 CC = cc
-CFLAGS = -Wall -Wextra -Werror -Iinclude -Ilibft
+CFLAGS = -Wall -Wextra -Werror -Iinclude -Ilibft -g3
 LDFLAGS = -lreadline
 
 # Libft
@@ -17,25 +17,17 @@ RESET = \033[0m
 # Source files
 SRC = main.c \
       debugin.c \
-      lexer/lexer_init.c \
-      lexer/lexer_special_handler.c \
-      lexer/lexer_utils.c \
-      lexer/lexer_word_handler.c \
+      lexer/full_lexeer.c \
       check_syntax/syntax_check_utils.c \
       check_syntax/helper.c \
       check_syntax/check_syntax.c \
       check_syntax/initial_syntax.c \
       check_syntax/validate_syntax.c \
       check_syntax/redirection_error.c \
-      parser/handle_redirections.c \
-      parser/handle_heredoc.c \
-      parser/parser_utils.c \
-      parser/parser.c \
+      parser/full_parser.c \
       clean_up/ft_clean.c \
       execution/execute.c \
-      expand/expand_token.c \
-      expand/expand_env.c \
-      expand/expand_utils.c 
+      expand/full_expande.c 
 
 # Object files
 OBJ = $(SRC:.c=.o)

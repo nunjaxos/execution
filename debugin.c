@@ -6,13 +6,22 @@
 /*   By: abnemili <abnemili@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 16:02:54 by abnemili          #+#    #+#             */
-/*   Updated: 2025/07/21 08:58:19 by abnemili         ###   ########.fr       */
+/*   Updated: 2025/07/22 13:22:28 by abnemili         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "minishell.h"
 
-// Function to print a single command's details
+int	ft_strcmp(const char *s1, const char *s2)
+{
+	size_t	i;
+
+	i = 0;
+	while (s1[i] && s2[i] && s1[i] == s2[i])
+		i++;
+	return ((unsigned char)s1[i] - (unsigned char)s2[i]);
+}
+
 void print_cmd_debug(t_cmd *cmd, int cmd_num)
 {
         int i;
