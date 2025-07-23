@@ -191,12 +191,12 @@ void	free_lexer(t_lexer *lexer)
 	}
 }
 
-void	cleanup_var_expansion(char *name, char *value, int is_special)
-{
-	if (is_special)
-		free(value);
-	free(name);
-}
+// void	cleanup_var_expansion(char *name, char *value, int is_special)
+// {
+// 	if (is_special)
+// 		free(value);
+// 	free(name);
+// }
 
 /* ========================================================================== */
 /*                           MAIN PARSING FUNCTION                           */

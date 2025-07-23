@@ -1,7 +1,5 @@
 #include "minishell.h"
 
-
-
 int is_valid_var_char(char c)
 {
     return (ft_isalnum(c) || c == '_');
@@ -72,7 +70,8 @@ char *expand_exit_status(int exit_code)
     return (ft_itoa(exit_code));
 }
 
-int handle_special_var(char *name, int exit_code, char **value)
+// Updated to take env_list parameter
+int handle_special_var(char *name, int exit_code, char **value, t_env *env_list)
 {
     if (!name || !value)
         return (0);
@@ -83,17 +82,17 @@ int handle_special_var(char *name, int exit_code, char **value)
         return (1); // indicates we allocated memory for value
     }
     
-    *value = get_env_value(name);
+    *value = get_env_value(env_list, name);
     return (0); // indicates value points to existing memory
 }
 
-// void cleanup_var_expansion(char *name, char *value, int is_special)
-// {
-//     if (name)
-//         free(name);
-//     if (value && is_special)
-//         free(value);
-// }
+void cleanup_var_expansion(char *name, char *value, int is_special)
+{
+    if (name)
+        free(name);
+    if (value && is_special)
+        free(value);
+}
 
 int process_regular_char(char *content, int *i, t_expand_data *data)
 {
@@ -114,6 +113,7 @@ int process_regular_char(char *content, int *i, t_expand_data *data)
     return (1);
 }
 
+// Updated to use env_list from data structure
 int process_dollar_expansion(char *content, int *i, t_expand_data *data)
 {
     int var_end;
@@ -127,7 +127,7 @@ int process_dollar_expansion(char *content, int *i, t_expand_data *data)
     name = extract_var_name(content, *i, &var_end);
     if (name)
     {
-        is_special = handle_special_var(name, data->exit_code, &value);
+        is_special = handle_special_var(name, data->exit_code, &value, data->env_list);
         if (!copy_var_value(data->res, data->len, data->max, value))
         {
             cleanup_var_expansion(name, value, is_special);
@@ -167,7 +167,8 @@ int process_expansion_loop(char *content, t_expand_data *data)
     return (1);
 }
 
-char *expand_token_content(char *content, int exit_code, int should_expand)
+// Updated to take env_list parameter
+char *expand_token_content(char *content, int exit_code, int should_expand, t_env *env_list)
 {
     char *res;
     int len;
@@ -190,6 +191,7 @@ char *expand_token_content(char *content, int exit_code, int should_expand)
     data.len = &len;
     data.max = &max;
     data.exit_code = exit_code;
+    data.env_list = env_list;
     
     if (!process_expansion_loop(content, &data))
     {
@@ -201,7 +203,8 @@ char *expand_token_content(char *content, int exit_code, int should_expand)
     return (res);
 }
 
-void handle_word_token(t_elem *curr, int exit_code)
+// Updated to take env_list parameter
+void handle_word_token(t_elem *curr, int exit_code, t_env *env_list)
 {
     int should_expand;
     char *exp;
@@ -212,7 +215,7 @@ void handle_word_token(t_elem *curr, int exit_code)
     // NEVER expand inside a single-quoted token
     should_expand = (curr->state != IN_QUOTE);
     
-    exp = expand_token_content(curr->content, exit_code, should_expand);
+    exp = expand_token_content(curr->content, exit_code, should_expand, env_list);
     if (exp)
     {
         free(curr->content);
@@ -247,7 +250,8 @@ char *remove_quotes(char *content, enum e_type quote_type)
     return (ft_strdup(content));
 }
 
-void handle_quoted_token(t_elem *curr, int exit_code)
+// Updated to take env_list parameter
+void handle_quoted_token(t_elem *curr, int exit_code, t_env *env_list)
 {
     char *unquoted;
     char *expanded;
@@ -263,7 +267,7 @@ void handle_quoted_token(t_elem *curr, int exit_code)
     // Only expand inside double quotes, not single quotes
     should_expand = (curr->type == DQUOTE);
     
-    expanded = expand_token_content(unquoted, exit_code, should_expand);
+    expanded = expand_token_content(unquoted, exit_code, should_expand, env_list);
     free(unquoted);
     
     if (expanded)
@@ -274,7 +278,8 @@ void handle_quoted_token(t_elem *curr, int exit_code)
     }
 }
 
-void expand_tokens(t_elem *token, int exit_code)
+// Updated to take env_list parameter
+void expand_tokens(t_elem *token, int exit_code, t_env *env_list)
 {
     t_elem *curr;
 
@@ -285,10 +290,10 @@ void expand_tokens(t_elem *token, int exit_code)
     while (curr)
     {
         if (curr->type == QUOTE || curr->type == DQUOTE)
-            handle_quoted_token(curr, exit_code);
+            handle_quoted_token(curr, exit_code, env_list);
         else if ((curr->type == WORD || curr->type == ENV) 
                  && curr->state != IN_QUOTE)
-            handle_word_token(curr, exit_code);
+            handle_word_token(curr, exit_code, env_list);
         curr = curr->next;
     }
 }
